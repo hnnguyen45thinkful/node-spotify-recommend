@@ -26,14 +26,33 @@ var app = express();
 app.use(express.static('public'));
 
 //Challenge to get search related to other artists.
-// First I define a function/var called function searchRelated for the aritst.
+// First I define a function/var called function searchRelatedArtists for the aritst.
+
+
+// https://developer.spotify.com/web-api/get-related-artists/
+// GET https://api.spotify.com/v1/artists/{id}/related-artists
 
 function searchRelatedArtists() {
-    //Apply the this.search for the artist and response. Artist not "Artist" used on the searchReq and response.
-    this.search = function(artist, res)
+    //Apply the this.search for the artist and response. Artist not "Artists" used on the searchReq and response.
+    this.search = function(artist, res) {
+    //Create endpoint 
+    var endpoint = 'artists/' + artist.id + '/related-artists'
+    //Also searchID to equal getfromApi with endpoint as parameter 
+    var searchID = getFromApi(endpoint) 
+    
+    searchID.on('end', function(item){
+        artist.related = item.artists;
+        console.log(item.artists)
+        res.json(artist);
+        });
+
+    searchID.on('error', function(code){
+        res.sendStatus(code);
+        });
+    }   
 }
 
-
+var related = new searchRelatedArtists();
 
 //Using the search and getting a specific name for the use and get request of spotify.
 app.get('/search/:name', function(req, res) {
