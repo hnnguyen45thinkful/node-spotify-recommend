@@ -24,17 +24,6 @@ var getFromApi = function(endpoint, args) {
 //Applying the application express and also the directory.
 var app = express();
 app.use(express.static('public'));
-
-//Challenge to get search related to other artists.
-// First I define a function/var called function searchRelated for the aritst.
-
-function searchRelatedArtists() {
-    //Apply the this.search for the artist and response. Artist not "Artist" used on the searchReq and response.
-    this.search = function(artist, res)
-}
-
-
-
 //Using the search and getting a specific name for the use and get request of spotify.
 app.get('/search/:name', function(req, res) {
     var searchReq = getFromApi('search', {
