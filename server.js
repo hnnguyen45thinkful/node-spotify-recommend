@@ -27,93 +27,64 @@ var getFromApi = function(endpoint, args) {
 // First I define a function/var called function getRelatedArtists and getTopTracksArtists for the aritst.
 // https://developer.spotify.com/web-api/get-related-artists/
 // GET https://api.spotify.com/v1/artists/{id}/related-artists
-
-//Similar from getFromApi
-var getRelatedArtists = function(id) {
-    var emitter = new events.EventEmitter();
-    unirest.get('https://api.spotify.com/v1/artists/' + id + '/related-artists/')
-        .end(function(response) {
-            if (response.ok) {
-                emitter.emit('end', response.body);
-            } else {
-                emitter.emit('error', response.code);
-            }
-        });
-    return emitter;
-};
-//Similar from the getFromApi
-var getTopTracks = function(id) {
-    var emitter = new events.EventEmitter();
-    unirest.get('https://api.spotify.com/v1/artists/' + id + '/top-tracks')
-        .qs({country: 'US'})
-        .end(function(response) {
-            if (response.ok) {
-                emitter.emit('end', response.body);
-            } else {
-                emitter.emit('error', response.code);
-            }
-        });
-    return emitter;
-};
-
-
-//Using the search and getting a specific name for the use and get request of spotify.
-app.get('/search/:name', function(req, res) {
+//create our app with express
+//create our app with express
+var app = express();
+//use our public directory with the app
+app.use(express.static('public'));
+//make the /search/:name route a get request for our app
+app.get('/search/:name', function(req, res){
+    var relatedTracks;
+    var artist;
+    //searchReq will run our getFromApi func with a endpoint of search to spotify
     var searchReq = getFromApi('search', {
+        //our args object takes in a 'string from user to add to search request'
         q: req.params.name,
+        //returns 1 result
         limit: 1,
+        //using an artist as a filter for results
         type: 'artist'
     });
-//Creating a boolean if the list is false and also the top list false and starting at zero with variables.
-    searchReq.on('end', function(item) {
-        var relatedComplete = false;
-        var topComplete = false;
-        var complete = 0;
-        var count = 0;
-        var checkComplete = function() {
-            if (relatedComplete && topComplete) {
-                res.json(artist);
-            }
-        };
-        var checkTopComplete = function() {
-            if (complete === count) {
-                topComplete = true;
-                checkComplete();
-            }
-        };
-        var artist = item.artists.items[0];
-        var idName = artist.id;
-        // var relatedReq = getFromApi('artists/' + id + '/related-artists/');
-        //Create a new variable from above with new id.
-        var relatedReq = getRelatedArtists(idName);
-        relatedReq.on('end', function(item) {
+    
+    //use searchReq's emitter to issue an end event
+    searchReq.on('end', function(item){
+        //store first item from artist search into artist
+        //item is our data from spotify
+        artist = item.artists.items[0];
+        console.log(artist)
+        //create a new request to spotify but this time search for 
+        //related artists
+        var relatedArtists = getFromApi('artists/'+artist.id+'/related-artists');
+        //emit an end call with relatedArtists
+        relatedArtists.on('end', function(item){
+            //store the artists sent back from spotify in the 
+            //related paramater for artist in the search query
             artist.related = item.artists;
-            count = artist.related.length;
-            artist.related.forEach(function(artist) {
-                var relId = artist.id;
-                var topReq = getTopTracks(relId);
-                topReq.on('end', function(item) {
-                    artist.tracks = item.tracks;
-                    complete++;
-                    checkTopComplete();
-                });
-                topReq.on('error', function(code) {
-                    res.sendStatus(code);
-                });
-            });
-            relatedComplete = true;
-            checkComplete();
+            //return the searched for artist and similar artists as json
+            var count = 0;
+            artist.related.forEach(function(currentArtist){
+                var relatedTopTracks = getFromApi('artists/' + currentArtist.id + '/top-tracks?country=US');
+                relatedTopTracks.on('end', function(item){
+                    currentArtist.tracks = item.tracks;
+                    count++;
+                    if(count === artist.related.length){
+                        res.json(artist);
+                    }
+                })
+                
+            })
         });
-        relatedReq.on('error', function(code) {
+        relatedArtists.on('error', function(code){
             res.sendStatus(code);
         });
+          
     });
-
-    searchReq.on('error', function(code) {
+    searchReq.on('error', function(code){
         res.sendStatus(code);
     });
+   
+    
 });
-
 app.listen(process.env.PORT || 8080);
 console.log("Server is listening to http://localhost:8080")
 
