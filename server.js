@@ -28,63 +28,79 @@ var getFromApi = function(endpoint, args) {
 // https://developer.spotify.com/web-api/get-related-artists/
 // GET https://api.spotify.com/v1/artists/{id}/related-artists
 //create our app with express
-//create our app with express
+//second call to api below
+var getRelated = function( id ) {
+    var emitter = new events.EventEmitter();
+    unirest.get('https://api.spotify.com/v1/artists/' + id + '/related-artists')
+    .end(function(response){
+        if (response.ok) {
+            emitter.emit('end', response.body);
+        } else {
+            emitter.emit('error', response.code);
+        }
+    });
+    return emitter;
+};
+
+//third call to api for top tracks
+var getTop = function( id ) {
+    var emitter = new events.EventEmitter();
+    unirest.get('https://api.spotify.com/v1/artists/' + id + '/top-tracks')
+    .qs({country: 'us'})
+    .end(function(response){
+        if (response.ok) {
+            emitter.emit('end', response.body);
+        } else {
+            emitter.emit('error', response.code);
+        }
+    });
+    return emitter;
+};
+
+
 var app = express();
-//use our public directory with the app
 app.use(express.static('public'));
-//make the /search/:name route a get request for our app
-app.get('/search/:name', function(req, res){
-    var relatedTracks;
-    var artist;
-    //searchReq will run our getFromApi func with a endpoint of search to spotify
+
+
+// GET https://api.spotify.com/v1/artists/{id}/related-artists 
+app.get('/search/:name', function(req, res) {
     var searchReq = getFromApi('search', {
-        //our args object takes in a 'string from user to add to search request'
         q: req.params.name,
-        //returns 1 result
         limit: 1,
-        //using an artist as a filter for results
         type: 'artist'
     });
-    
-    //use searchReq's emitter to issue an end event
-    searchReq.on('end', function(item){
-        //store first item from artist search into artist
-        //item is our data from spotify
-        artist = item.artists.items[0];
-        console.log(artist)
-        //create a new request to spotify but this time search for 
-        //related artists
-        var relatedArtists = getFromApi('artists/'+artist.id+'/related-artists');
-        //emit an end call with relatedArtists
-        relatedArtists.on('end', function(item){
-            //store the artists sent back from spotify in the 
-            //related paramater for artist in the search query
-            artist.related = item.artists;
-            //return the searched for artist and similar artists as json
-            var count = 0;
-            artist.related.forEach(function(currentArtist){
-                var relatedTopTracks = getFromApi('artists/' + currentArtist.id + '/top-tracks?country=US');
-                relatedTopTracks.on('end', function(item){
-                    currentArtist.tracks = item.tracks;
-                    count++;
-                    if(count === artist.related.length){
-                        res.json(artist);
-                    }
-                })
-                
-            })
-        });
-        relatedArtists.on('error', function(code){
-            res.sendStatus(code);
-        });
-          
+    //emit artist
+    searchReq.on('end', function(item) {
+        var artist = item.artists.items[0];
+        var id = artist.id;
+            //emit related artists
+            var related = getRelated(id);
+            related.on('end', function(data){
+                artist.related = data.artists;
+
+                var count = 0;
+                var completed = artist.related.length;
+
+                artist.related.forEach(function(argument){
+                    var topTracks = new getTop(argument.id);
+                    topTracks.on('end', function(topSongs){
+                        argument.tracks = topSongs.tracks;
+                        count++;
+                        if (count === completed) {
+                            res.json(artist);
+                        }
+                    });
+                });
+            }); 
     });
-    searchReq.on('error', function(code){
+    
+
+
+    searchReq.on('error', function(code) {
         res.sendStatus(code);
     });
-   
-    
 });
+
 app.listen(process.env.PORT || 8080);
 console.log("Server is listening to http://localhost:8080")
 
