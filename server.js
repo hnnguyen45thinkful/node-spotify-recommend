@@ -28,8 +28,8 @@ var getFromApi = function(endpoint, args) {
 // https://developer.spotify.com/web-api/get-related-artists/
 // GET https://api.spotify.com/v1/artists/{id}/related-artists
 //create our app with express
-//second call to api below
-var getRelated = function( id ) {
+//Here I need to call another API below for related artists and apply event emitter.
+var getRelated = function(id) {
     var emitter = new events.EventEmitter();
     unirest.get('https://api.spotify.com/v1/artists/' + id + '/related-artists')
     .end(function(response){
@@ -41,8 +41,7 @@ var getRelated = function( id ) {
     });
     return emitter;
 };
-
-//third call to api for top tracks
+//Again, call another API top tracks that are related to the tracks.
 var getTop = function( id ) {
     var emitter = new events.EventEmitter();
     unirest.get('https://api.spotify.com/v1/artists/' + id + '/top-tracks')
@@ -57,11 +56,8 @@ var getTop = function( id ) {
     return emitter;
 };
 
-
 var app = express();
 app.use(express.static('public'));
-
-
 // GET https://api.spotify.com/v1/artists/{id}/related-artists 
 app.get('/search/:name', function(req, res) {
     var searchReq = getFromApi('search', {
@@ -92,10 +88,7 @@ app.get('/search/:name', function(req, res) {
                     });
                 });
             }); 
-    });
-    
-
-
+        });
     searchReq.on('error', function(code) {
         res.sendStatus(code);
     });
