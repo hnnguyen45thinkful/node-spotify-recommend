@@ -41,7 +41,16 @@ var getRelated = function(id) {
     });
     return emitter;
 };
+//Exercise for Parallify Spotify
 //Again, call another API top tracks that are related to the tracks.
+// Requirements
+// For each related artist you should send out a parallel request to the top tracks endpoints.
+// This should happen after the request to the get related artists endpoint
+// It should use the artist IDs from the artist.related object
+// If the request is successful, then the tracks attribute of the related artist should be set to item.tracks, where item is the object returned by the get related artists endpoint.
+// When all of the requests have completed the entire artist object should be sent back to the client
+// Your code should deal gracefully with any of the requests failing
+// Test out your code using the front end. You should see a list of top tracks added below each related artist.
 var getTop = function(id) {
     var emitter = new events.EventEmitter();
     unirest.get('https://api.spotify.com/v1/artists/' + id + '/top-tracks')
