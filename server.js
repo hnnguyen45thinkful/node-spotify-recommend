@@ -42,7 +42,7 @@ var getRelated = function(id) {
     return emitter;
 };
 //Again, call another API top tracks that are related to the tracks.
-var getTop = function( id ) {
+var getTop = function(id) {
     var emitter = new events.EventEmitter();
     unirest.get('https://api.spotify.com/v1/artists/' + id + '/top-tracks')
     .qs({country: 'us'})
