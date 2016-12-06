@@ -1,7 +1,9 @@
 //Created and edited by Hieu Nguyen
+console.log('running!');
 var unirest = require('unirest');
 var express = require('express');
 var events = require('events');
+var fs = require('fs');
 //Applying the application express and also the directory.
 var app = express();
 app.use(express.static('public'));
